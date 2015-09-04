@@ -1,3 +1,5 @@
+require 'yaml' # for parsing GAE's app.yaml
+
 module DPL
   class Provider
     class GAE < Provider
@@ -9,6 +11,10 @@ module DPL
       INSTALL='~'
       BOOTSTRAP="#{INSTALL}/#{NAME}/bin/bootstrapping/install.py"
       GCLOUD="#{INSTALL}/#{NAME}/bin/gcloud"
+
+      # Indicates whether the invocation of gcloud preview app deploy should be wrapped
+      # with aedeploy, which is specific to Managed VMs running the Go runtime.
+      wrap = false
 
       def install_deploy_dependencies
         # FIXME this is a workaround for https://code.google.com/p/google-cloud-sdk/issues/detail?id=228
@@ -32,6 +38,14 @@ module DPL
 
         unless context.shell("#{BOOTSTRAP} --usage-reporting=false --command-completion=false --path-update=false --additional-components=preview")
           error 'Could not bootstrap Google Cloud SDK.'
+        end
+
+        ay = YAML.load_file(config)
+        if ay['runtime'] == 'go' && ay['vm'] == true
+          wrap = true
+          unless context.shell("go get google.golang.org/appengine/cmd/aedeploy")
+            error 'Could not go get aedeploy.'
+          end
         end
       end
 
@@ -74,7 +88,8 @@ module DPL
       end
 
       def push_app
-        command = GCLOUD
+        command = wrap ? 'aedeploy ' : ''
+        command << GCLOUD
         command << ' --quiet'
         command << " --verbosity \"#{verbosity}\""
         command << " --project \"#{project}\""
