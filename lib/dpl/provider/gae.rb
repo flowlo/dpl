@@ -11,6 +11,13 @@ module DPL
       GCLOUD="#{INSTALL}/#{NAME}/bin/gcloud"
 
       def install_deploy_dependencies
+        if aedeploy
+          $stderr.puts 'Saw option aedeploy. Assuming Go is set up properly and attempting to download the tool now.'
+          unless context.shell("go install -v google.golang.org/appengine/cmd/aedeploy")
+            error 'Could not install google.golang.org/appengine/cmd/aedeploy'
+          end
+        end
+
         if File.exists? GCLOUD
           return
         end
@@ -70,8 +77,13 @@ module DPL
           options[:no_stop_previous_version]
       end
 
+      def aedeploy
+        options[:aedeploy]
+      end
+
       def push_app
-        command = GCLOUD
+        command = aedeploy ? 'aedeploy ' : ''
+        command << GCLOUD
         command << ' --quiet'
         command << " --verbosity \"#{verbosity}\""
         command << " --project \"#{project}\""
