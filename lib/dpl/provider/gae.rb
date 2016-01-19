@@ -61,8 +61,8 @@ module DPL
         options[:config] || 'app.yaml'
       end
 
-      def default
-        options[:default]
+      def no_promote
+        options[:no_promote]
       end
 
       def verbosity
@@ -81,7 +81,7 @@ module DPL
         command << " preview app deploy \"#{config}\""
         command << " --version \"#{version}\""
         command << " --docker-build \"#{docker_build}\""
-        command << (default ? ' --set-default' : '')
+        command << (no_promote ? ' --no-promote' : '')
         unless context.shell(command)
           error 'Deployment failed.'
         end
